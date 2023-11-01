@@ -1,5 +1,8 @@
 const express = require ('express')
+const bodyParser = require('body-parser');
+const pool = require('./db');
 const app  = express()
+app.use(bodyParser.json());
 
 app.get ('/', (req, res) => {
     res.send ('Servidor 1');
@@ -28,6 +31,36 @@ app.get ('/Registro', (req, res) => {
         this.reset();
       });
       
+});
+
+app.put('/usuario-inmobiliario/:username', async (req, res) => {
+  const username = req.params.username; 
+  const { nombre, descripcion, añosExperiencia, proyectosRealizados } = req.body;
+
+  try {
+    // Validaciones
+    if (!nombre || !descripcion || isNaN(añosExperiencia) || isNaN(proyectosRealizados)) {
+      res.status(400).json({ error: 'Los datos proporcionados son inválidos.' });
+      return;
+    }
+    if (añosExperiencia < 0 || añosExperiencia > 100) {
+      res.status(400).json({ error: 'El valor de años de experiencia debe estar entre 0 y 100.' });
+      return;
+    }
+    
+    if (proyectosRealizados < 0 || proyectosRealizados > 1000) {
+      res.status(400).json({ error: 'El valor de proyectos realizados debe estar entre 0 y 1000.' });
+      return;
+    }
+    // Actualiza el perfil del usuario inmobiliario en la base de datos
+    const updateQuery = "\n      UPDATE usuarios_inmobiliarios\n      SET nombre = $1, descripcion = $2, años_experiencia = $3, proyectos_realizados = $4\n      WHERE username = $5\n    ";
+    await pool.query(updateQuery, [nombre, descripcion, añosExperiencia, proyectosRealizados, username]);
+
+    res.status(200).json({ mensaje: 'Perfil actualizado con éxito' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al actualizar el perfil' });
+  }
 });
 
 app.get ('/About', (req, res) => {
